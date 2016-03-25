@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # tabulate listing data
 library(memisc)
 library(dplyr)
+library(reshape)
 
 ```
 
@@ -42,7 +43,7 @@ knitr::kable(tab, caption = paste("Total interview = ", sum(tab$listedFarmers),
 ```
 
 
-The table below shows the number of parcel containing sweet potato, irish potato yellow yam, onion, other crops, and mixed crops by enumeration area. 
+The table below shows the number of parcels containing sweet potato, irish potato yellow yam, onion, other crops, and mixed crops by enumeration area. 
 ```{r, echo=FALSE}
 #create variable for # of crops on a parcel
 master$sweetPotato[master$sweetPotato > 0] <- TRUE
@@ -69,4 +70,25 @@ tab <- master %>%
 knitr::kable(tab)
 ```
 
-## Paradata analysis
+## Paradata analysis - ONLY INCLUDES PARADATA FROM FINAL QUESTIONNIARE
+### It doesn't include interviews before the other please specify question was added
+
+
+```{r, echo=FALSE}
+para <- read.table(paste0(data.dir,"/","interview_actions.tab"),
+                         sep = "\t",
+                         stringsAsFactors = FALSE,
+                         header = TRUE)
+
+source("R/interviewTable.R")
+para <- interviewTable(para, 
+                       format.time = FALSE)
+
+interviews <- para %>%
+                group_by(Interviewer) %>%
+                summarize(medianDurationinSeconds = median(as.numeric(Duration), 
+                                                  na.rm = TRUE),
+                          numberOfInterviewsCompleted = n())
+                
+knitr::kable(interviews)
+````
