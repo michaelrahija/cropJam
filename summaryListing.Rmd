@@ -14,7 +14,9 @@ library(reshape)
 
 ```
 
-Accordingly to my tabulation there were only **674** farmers The tabulation below shows the # of farms and parcels listed by EA. 
+# Overview of listing data collected
+
+## Number of listed farmers, and parcels by EA
 ```{r, echo = FALSE}
 #set wd
 setwd("~/Dropbox/CROP/Jamaica/cropJam")
@@ -37,13 +39,14 @@ tab <- master %>%
           summarize(listedFarmers = length(unique(qId)),
                     listedParcels = n())
 
-knitr::kable(tab, caption = paste("Total interview = ", sum(tab$listedFarmers),
-                                  "\n", "Total parcels = ", sum(tab$listedParcels)))
+knitr::kable(tab, caption = paste("Total interviews = ", sum(tab$listedFarmers),
+                                  "\n", 
+                                  "Total parcels = ", sum(tab$listedParcels)))
 
 ```
 
 
-The table below shows the number of parcels containing sweet potato, irish potato yellow yam, onion, other crops, and mixed crops by enumeration area. 
+## Number of parcels containing sweet potato, irish potato, yellow yam, onion, other crops, and mixed crops by enumeration area. 
 ```{r, echo=FALSE}
 #create variable for # of crops on a parcel
 master$sweetPotato[master$sweetPotato > 0] <- TRUE
@@ -65,15 +68,21 @@ tab <- master %>%
                     yellowYam = sum(yellowYam, na.rm = TRUE), 
                     onion = sum(onion, na.rm = TRUE),
                     otherCrop = sum(otherCrop, na.rm = TRUE),
-                    noMixed = sum(noCrops > 1, na.rm = TRUE))
+                    numberMixed = sum(noCrops > 1, na.rm = TRUE))
                       
 knitr::kable(tab)
+
+
+# tab <- master %>%
+#         group_by(Other_rop)%>%
+#         summarize(Other = n())
+# as.data.frame(tab)
+        
 ```
 
-## Paradata analysis - ONLY INCLUDES PARADATA FROM FINAL QUESTIONNIARE
-### It doesn't include interviews before the other please specify question was added
+# Paradata analysis - doesn't include first version questionnaire
 
-
+## Number of interviews by interviewer and median duration of interview
 ```{r, echo=FALSE}
 para <- read.table(paste0(data.dir,"/","interview_actions.tab"),
                          sep = "\t",
