@@ -47,6 +47,8 @@ knitr::kable(tab, caption = paste("Total interviews = ", sum(tab$listedFarmers),
 
 
 ## Number of parcels containing sweet potato, irish potato, yellow yam, onion, other crops, and mixed crops by enumeration area. 
+
+
 ```{r, echo=FALSE}
 #create variable for # of crops on a parcel
 master$sweetPotato[master$sweetPotato > 0] <- TRUE
@@ -82,7 +84,8 @@ knitr::kable(tab)
 
 # Paradata analysis - doesn't include first version questionnaire
 
-## Number of interviews by interviewer and median duration of interview
+## Number of interviews by interviewer and median duration of interview in seconds
+*Notably, some interviewers didn't enter the data in tablet at time of collection. Instead, they wrote the responses on paper, and transcribed in tablet. It would be interesting to know which interviews used which method to compare the duration.
 ```{r, echo=FALSE}
 para <- read.table(paste0(data.dir,"/","interview_actions.tab"),
                          sep = "\t",
