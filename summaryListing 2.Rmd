@@ -1,0 +1,72 @@
+---
+title: "Summary listing from Jamaica"
+author: "Michael Rahija"
+date: "March 25, 2016"
+output: pdf_document
+---
+
+```{r, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# tabulate listing data
+library(memisc)
+library(dplyr)
+
+```
+
+Accordingly to my tabulation there were only **674** farmers The tabulation below shows the # of farms and parcels listed by EA. 
+```{r, echo = FALSE}
+#set wd
+setwd("~/Dropbox/CROP/Jamaica/cropJam")
+data.dir <- "~/Dropbox/CROP/Jamaica/data_listing"
+
+
+#create data sets
+source("R/createDataset.R")
+master <- createDataset()
+
+###I think interviews a153adf0d43e472794211be60d15cbcd and 940281e1c43d41cb84dd4dbf9b2b26dd
+###have data entry errors b/c there are instances when parcelId != parcel_list
+
+#clean data set
+source("R/cleanDataset.R")
+master <- cleanDataset(df = master)
+
+tab <- master %>%
+          group_by(ea) %>%
+          summarize(listedFarmers = length(unique(qId)),
+                    listedParcels = n())
+
+knitr::kable(tab, caption = paste("Total interview = ", sum(tab$listedFarmers),
+                                  "\n", "Total parcels = ", sum(tab$listedParcels)))
+
+```
+
+
+The table below shows the number of parcel containing sweet potato, irish potato yellow yam, onion, other crops, and mixed crops by enumeration area. 
+```{r, echo=FALSE}
+#create variable for # of crops on a parcel
+master$sweetPotato[master$sweetPotato > 0] <- TRUE
+master$irishPotato[master$irishPotato > 0] <- TRUE
+master$yellowYam[master$yellowYam > 0] <- TRUE
+master$onion[master$onion > 0] <- TRUE
+master$otherCrop[master$otherCrop > 0] <- TRUE
+
+master$noCrops <- master$sweetPotato +
+                      master$irishPotato +
+                      master$yellowYam +
+                      master$onion +
+                      master$otherCrop 
+
+tab <- master %>%
+          group_by(ea) %>%
+          summarize(sweetPotato = sum(sweetPotato, rm.na = TRUE),
+                    irishPotato = sum(irishPotato, na.rm = TRUE),
+                    yellowYam = sum(yellowYam, na.rm = TRUE), 
+                    onion = sum(onion, na.rm = TRUE),
+                    otherCrop = sum(otherCrop, na.rm = TRUE),
+                    noMixed = sum(noCrops > 1, na.rm = TRUE))
+                      
+knitr::kable(tab)
+```
+
+## Paradata analysis
