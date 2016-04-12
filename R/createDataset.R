@@ -80,9 +80,9 @@ createDataset <- function(data.dir = "~/Dropbox/CROP/Jamaica/data_listing"){
                   master.no, 
                   all = TRUE)
   
-  master <- select(master, -c(sssys_irnd,
-                              ssSys_IRnd,
-                              parcel_list))
+  # master <- select(master, -c(sssys_irnd,
+  #                             ssSys_IRnd,
+  #                             parcel_list))
 
   
 master
