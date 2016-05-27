@@ -1,0 +1,103 @@
+---
+title: "Summary listing from Jamaica"
+author: "Michael Rahija"
+date: "May 25, 2016"
+classoption: landscape
+output: pdf_document
+---
+
+```{r, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# tabulate listing data
+
+library(dplyr)
+library(reshape)
+
+```
+
+# What the data looks like
+
+```{r}
+#set wd
+if(Sys.info()[5] == "x86_64"){
+  setwd("~/Dropbox/CROP/Jamaica/cropJam")
+  data.dir <- "~/Dropbox/CROP/Jamaica/data_area/"
+} else {
+  setwd("C:/Users/Rahija/Dropbox/CROP/Jamaica/cropJam")
+  data.dir <- "C:/Users/Rahija/Dropbox/CROP/Jamaica/data_area/"
+}
+
+
+
+#grab list of files
+data.files <- list.files(data.dir, pattern = ".tab")
+
+
+#read in files in order, and merge
+farmer <- read.delim(paste0(data.dir,data.files[[1]]),
+                  header = TRUE,
+                  sep = "\t")
+
+colnames(farmer)[1] <- "farm_id"
+
+
+
+parcel <- read.delim(paste0(data.dir,data.files[[7]]),
+                  header = TRUE,
+                  sep = "\t")
+colnames(parcel)[length(colnames(parcel))] <- "farm_id"
+colnames(parcel)[1] <- "parcel_id"
+
+master <- merge(farmer, parcel, by = "farm_id")
+
+
+
+crop <- read.delim(paste0(data.dir,data.files[[2]]),
+                  header = TRUE,
+                  sep = "\t")
+
+colnames(crop)[1] <- "crop_id"
+colnames(crop)[length(colnames(crop))] <- "farm_id"
+colnames(crop)[length(colnames(crop))-1] <- "parcel_id"
+
+master <- merge(master, crop, by = c("farm_id", "parcel_id"))
+
+
+master <- arrange(master, farm_id, parcel_id, crop_id)
+
+#keep only relevant column to filter harvest dates, and count parcels
+master <- select(master, 
+                 Farmer_name_3,
+                 farm_id,
+                 parcel_id,
+                 Parcel_ID_3,
+                 crop_id,
+                 harvest_date_current_3
+                 )
+#show what the data looks like
+knitr::kable(head(master[], n = 10))
+
+
+
+```
+
+# After filtering for the harvest dates that lie in June and July, we should be able to just count the unique number of parcel and farm ids.
+```{r}
+#convert harvest date to computer readable for filtering
+master$harvest_date_current_3 <- as.Date(master$harvest_date_current_3, format = "%m/%d/%Y %H:%M:%S")
+
+
+temp <- subset(master, harvest_date_current_3 > as.Date("2016-06-01"))
+
+temp <- subset(temp, harvest_date_current_3 < as.Date("2016-08-01"))
+
+to.count <- select(temp, farm_id, parcel_id)
+
+
+#count unique rows
+nrow(unique(to.count))
+
+
+```
+
+#To me, I count 99 unique parcels that harvest from June to July.

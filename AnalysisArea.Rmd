@@ -1,0 +1,147 @@
+---
+title: "Summary listing from Jamaica"
+author: "Michael Rahija"
+date: "May 27, 2016"
+output: pdf_document
+---
+
+```{r, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# tabulate listing data
+
+library(dplyr)
+library(reshape)
+library(tidyr)
+library(ggplot2)
+
+```
+
+
+```{r, echo = FALSE, warning=FALSE}
+###################################
+## CONFIGURE AND CREATE DATASET  ##
+###################################
+#set wd
+if(Sys.info()[5] == "x86_64"){
+  setwd("~/Dropbox/CROP/Jamaica/cropJam")
+  data.dir <- "~/Dropbox/CROP/Jamaica/data_area/"
+} else {
+  setwd("C:/Users/Rahija/Dropbox/CROP/Jamaica/cropJam")
+  data.dir <- "C:/Users/Rahija/Dropbox/CROP/Jamaica/data_area/"
+}
+
+
+
+#grab list of files
+data.files <- list.files(data.dir, pattern = ".tab")
+
+
+#read in files in order, and merge
+farmer <- read.delim(paste0(data.dir,data.files[[1]]),
+                  header = TRUE,
+                  sep = "\t")
+
+colnames(farmer)[1] <- "farm_id"
+
+
+
+parcel <- read.delim(paste0(data.dir,data.files[[7]]),
+                  header = TRUE,
+                  sep = "\t")
+colnames(parcel)[length(colnames(parcel))] <- "farm_id"
+colnames(parcel)[1] <- "parcel_id"
+
+master <- merge(farmer, parcel, by = "farm_id", all = TRUE)
+
+
+
+crop <- read.delim(paste0(data.dir,data.files[[2]]),
+                  header = TRUE,
+                  sep = "\t")
+
+colnames(crop)[1] <- "crop_id"
+colnames(crop)[length(colnames(crop))] <- "farm_id"
+colnames(crop)[length(colnames(crop))-1] <- "parcel_id"
+
+master <- merge(master, crop, by = c("farm_id", "parcel_id"), all = TRUE)
+
+
+master <- arrange(master, farm_id, parcel_id, crop_id)
+
+```
+
+## Examine the accuracy of the geoferences for parcels
+The georefernece of each parcel was recorded two times. The experience in Indonesia suggested that the second reading was often more accurate than the first. Again, the second gps measure seems to be a bit more accurate than the first. 
+
+```{r, echo = FALSE}
+
+gps <- select(master, 
+              farm_id,parcel_id,
+              gps_loc_1st_3_Accuracy,
+              gps_loc_2nd_3_Accuracy)
+
+gps <- unique(gps)
+
+x <- gps %>% 
+      gather(measure, 
+             accuracy, 
+             gps_loc_1st_3_Accuracy:gps_loc_2nd_3_Accuracy)
+
+# ggplot(x,aes(x=accuracy)) + 
+#       geom_histogram(data=subset(x,measure == 'gps_loc_1st_3_Accuracy'),
+#                      fill = "red", alpha = 0.2) +
+#       geom_histogram(data=subset(x,measure == 'gps_loc_2nd_3_Accuracy'),
+#                      fill = "green", alpha = 0.2)
+# 
+# ggplot(x,aes(x=accuracy)) + 
+  # stat_ecdf(aes(group = measure, colour = measure)) 
+
+ggplot(x,aes(x=accuracy)) + 
+  geom_density(aes(group = measure, colour = measure))
+```
+
+The mean of the first measure is `r mean(x$accuracy[x$measure == "gps_loc_1st_3_Accuracy"],na.rm = TRUE)` and the mean of the second is `r mean(x$accuracy[x$measure == "gps_loc_2nd_3_Accuracy"],na.rm = TRUE)`. 
+
+In `r nrow(filter(gps,gps_loc_1st_3_Accuracy > gps_loc_2nd_3_Accuracy)/nrow(gps))` percent of cases, the second reading is more accurate than the first. Filtering each parcel for the most accurate of the two the distribution becomes a bit tighter. 
+
+```{r, echo = FALSE}
+if(gps$gps_loc_1st_3_Accuracy > gps$gps_loc_1st_3_Accuracy){
+  gps$gps_Accuracy <- gps$gps_loc_1st_3_Accuracy
+} else {
+  gps$gps_Accuracy <- gps$gps_loc_2nd_3_Accuracy
+}
+
+ggplot(gps, aes(x = gps_Accuracy)) + geom_density()
+```
+
+Looking at the quantiles, we can see that 85% of the georeferences are more accurate than 37.5 meters, and 80% are below 25 meters which is accurate enough to be helpful for enumerators. 
+
+```{r, echo = FALSE}
+quantile(gps$gps_Accuracy, probs = seq(0,1,.05), na.rm = TRUE)
+
+temp <- filter(gps, gps_Accuracy <= 37.5)
+
+ggplot(temp, aes(x = gps_Accuracy)) + geom_density()
+```
+
+# Analysis of differences between measurement methods for plot area
+```{r, echo = FALSE}
+area <- select(master, 
+              farm_id,parcel_id,
+              parcel_area_inquiry_3,
+              area_parcel_gps1_3,
+              area_parcel_gps2_3)
+
+area <- filter(area, !is.na(area_parcel_gps1_3))
+
+area.m <- area %>%
+                gather(measure,
+                       accuracy,
+                       parcel_area_inquiry_3:area_parcel_gps2_3)
+
+ggplot(area.m, aes(x = accuracy)) + 
+  geom_density(aes(group = measure, colour = measure, fill = measure), alpha = .2) 
+
+```
+
+
