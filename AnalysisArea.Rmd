@@ -1,7 +1,7 @@
 ---
-title: "Summary listing from Jamaica"
+title: "Preliminary Analysis of Accuracy of Geo-References and Comparision of Area Methods for Jamaica"
 author: "Michael Rahija"
-date: "May 27, 2016"
+date: "May 30, 2016"
 output: pdf_document
 ---
 
@@ -17,7 +17,7 @@ library(ggplot2)
 ```
 
 
-```{r, echo = FALSE, warning=FALSE}
+```{r, echo = FALSE, message = FALSE, include = FALSE, fig_width = 5, fig.height= 3}
 ###################################
 ## CONFIGURE AND CREATE DATASET  ##
 ###################################
@@ -30,7 +30,7 @@ if(Sys.info()[5] == "x86_64"){
   data.dir <- "C:/Users/Rahija/Dropbox/CROP/Jamaica/data_area/"
 }
 
-
+options(scipen=1, digits=2)
 
 #grab list of files
 data.files <- list.files(data.dir, pattern = ".tab")
@@ -68,13 +68,6 @@ master <- merge(master, crop, by = c("farm_id", "parcel_id"), all = TRUE)
 
 master <- arrange(master, farm_id, parcel_id, crop_id)
 
-```
-
-## Examine the accuracy of the geoferences for parcels
-The georefernece of each parcel was recorded two times. The experience in Indonesia suggested that the second reading was often more accurate than the first. Again, the second gps measure seems to be a bit more accurate than the first. 
-
-```{r, echo = FALSE}
-
 gps <- select(master, 
               farm_id,parcel_id,
               gps_loc_1st_3_Accuracy,
@@ -86,6 +79,20 @@ x <- gps %>%
       gather(measure, 
              accuracy, 
              gps_loc_1st_3_Accuracy:gps_loc_2nd_3_Accuracy)
+
+
+```
+
+## Examine the accuracy of the geoferences for parcels
+The geo-refernece of each parcel was recorded two times. The experience in Indonesia suggested that the second reading was often more accurate than the first.
+
+In Jamaica, `r nrow(gps)` plots were geo-referenced. The mean of the first measure is `r mean(x$accuracy[x$measure == "gps_loc_1st_3_Accuracy"],na.rm = TRUE)` and the mean of the second is `r mean(x$accuracy[x$measure == "gps_loc_2nd_3_Accuracy"],na.rm = TRUE)`. 
+
+In `r nrow(filter(gps,gps_loc_1st_3_Accuracy > gps_loc_2nd_3_Accuracy)/nrow(gps))` percent of cases, the second reading was more accurate than the first. The plot below shows the distribution of the accuracy of the first and second readings. 
+
+
+```{r, echo = FALSE, fig_width = 5, fig.height= 3, warning = FALSE, fig.align='left'}
+
 
 # ggplot(x,aes(x=accuracy)) + 
 #       geom_histogram(data=subset(x,measure == 'gps_loc_1st_3_Accuracy'),
@@ -100,32 +107,36 @@ ggplot(x,aes(x=accuracy)) +
   geom_density(aes(group = measure, colour = measure))
 ```
 
-The mean of the first measure is `r mean(x$accuracy[x$measure == "gps_loc_1st_3_Accuracy"],na.rm = TRUE)` and the mean of the second is `r mean(x$accuracy[x$measure == "gps_loc_2nd_3_Accuracy"],na.rm = TRUE)`. 
+Considering only the most accurate reading of each parcel shows that 85% of the georeferences are more accurate than 37.5 meters. Eighty percent are below 25 meters which is accurate enough to be helpful for enumerators. 
 
-In `r nrow(filter(gps,gps_loc_1st_3_Accuracy > gps_loc_2nd_3_Accuracy)/nrow(gps))` percent of cases, the second reading is more accurate than the first. Filtering each parcel for the most accurate of the two the distribution becomes a bit tighter. 
-
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE,fig.align= "left"}
 if(gps$gps_loc_1st_3_Accuracy > gps$gps_loc_1st_3_Accuracy){
   gps$gps_Accuracy <- gps$gps_loc_1st_3_Accuracy
 } else {
   gps$gps_Accuracy <- gps$gps_loc_2nd_3_Accuracy
 }
 
-ggplot(gps, aes(x = gps_Accuracy)) + geom_density()
-```
+x <- quantile(gps$gps_Accuracy, probs = seq(0,1,.05), na.rm = TRUE)
 
-Looking at the quantiles, we can see that 85% of the georeferences are more accurate than 37.5 meters, and 80% are below 25 meters which is accurate enough to be helpful for enumerators. 
 
-```{r, echo = FALSE}
-quantile(gps$gps_Accuracy, probs = seq(0,1,.05), na.rm = TRUE)
+tab <- data.frame(x)
 
-temp <- filter(gps, gps_Accuracy <= 37.5)
+colnames(tab) = "Accuracy (in meters)"
 
-ggplot(temp, aes(x = gps_Accuracy)) + geom_density()
+
+knitr::kable(tab, caption = "Cummulative density of accuracy of geo-references")
+
+# temp <- filter(gps, gps_Accuracy <= 37.5)
+# 
+# ggplot(temp, aes(x = gps_Accuracy)) + geom_density()
 ```
 
 # Analysis of differences between measurement methods for plot area
-```{r, echo = FALSE}
+
+The following figures show a preliminary analysis of the different methods used to measure plot area, namely farmer inquiry and gps measurement. Each plot was measured two times by gps. The area by gps measurements have been averaged to compare with farmer inquiry. In total, 210 plots were measured both by gps and farmer inquiry.
+
+The density plot below shows the distribution of parcel sizes comparing area measure with GPS (mean_gpsarea), and farmer inquiry (parcel_area_inquiry_3). The vertical lines indicate the means of the distributions. The mean of the distribution for farmer inquiry is to the right of the mean of the gps measurements. For larger plots, the area underneath the curve for farmer inquiry is greater than the area for gps measure. This implies a positive biase for the farmer inquiry method. 
+```{r, echo = FALSE, fig.align= "left",fig_width = 5, fig.height= 3}
 area <- select(master, 
               farm_id,parcel_id,
               parcel_area_inquiry_3,
@@ -134,14 +145,90 @@ area <- select(master,
 
 area <- filter(area, !is.na(area_parcel_gps1_3))
 
+area$mean_gpsarea <- (area$area_parcel_gps1_3 + area$area_parcel_gps2_3)/2
+
+
 area.m <- area %>%
                 gather(measure,
-                       accuracy,
-                       parcel_area_inquiry_3:area_parcel_gps2_3)
+                       areaInAcres,
+                       parcel_area_inquiry_3:mean_gpsarea)
 
-ggplot(area.m, aes(x = accuracy)) + 
-  geom_density(aes(group = measure, colour = measure, fill = measure), alpha = .2) 
+
+
+area.m <- filter(area.m, measure == "mean_gpsarea" | measure == "parcel_area_inquiry_3")
+
+cdat <- plyr::ddply(area.m, "measure",summarise, size.mean = mean(areaInAcres),
+                    size.sd = sd(areaInAcres))
+
+ggplot(area.m, aes(x = areaInAcres)) + 
+  geom_density(aes(group = measure, 
+                   colour = measure, 
+                   fill = measure), alpha = .2) +
+  xlab("Plot Area (in Acres)") +
+  geom_vline(data = cdat, aes(xintercept = size.mean, color = measure),
+               size = 1)
 
 ```
 
+Considering the violin plot below, the range of plot sizes provided by farmer inquiry is larger than the gps area measure. 
 
+```{r, echo = FALSE, message = FALSE, fig_width = 3, fig.height= 2}
+ggplot(area.m, aes(factor(measure), areaInAcres, fill = factor(measure))) +
+  geom_violin() +
+  xlab("Method of Measurement")+
+  ylab("Plot Area (in Acres)")
+
+# tab <- area.m %>%
+#             group_by(measure) %>%
+#             summarise(mean = mean(areaInAcres), sd = sd(areaInAcres))
+#     
+```
+
+
+There is strong positive correlation between the average gps area measure and results from farmer inquiry. 
+
+```{r, echo = FALSE, message = FALSE, , fig_width = 3, fig.height= 3}
+
+area$diff <- abs(area$parcel_area_inquiry_3 - area$mean_gpsarea)
+
+area$perDiff <- abs(area$diff/((area$parcel_area_inquiry_3  + area$mean_gpsarea)/2))
+
+model <- lm(mean_gpsarea ~ parcel_area_inquiry_3, data = area)
+
+ggplot(area, aes(x = parcel_area_inquiry_3, y = mean_gpsarea)) +
+  geom_point() +
+  # geom_abline(intercept = 0, slope = 1, color = "red") +
+  # annotate("text", label = "Slope = 1",
+  #          color = "red", size= 3) +
+  # ylim(0,5000) +
+  # xlim(0,5000) +
+  geom_smooth(method=lm, formula=y~x) +
+  annotate("text", label = paste0("Coeff = ",format(round(model$coefficients[[2]],2)), " ,","\n",
+                                  "R-squared = ",format(round(summary(model)$r.squared,2)) ),
+                    y = 2, x = 6,color = "blue", size= 3)+
+  xlab("Plot area by inquiry (in Acres)")+
+  ylab("Plot area by gps measurement")
+```
+
+Truncating the dataset for plots less than or equal to 4 acres signals that the difference between the plot area measured by gps, and measured by farmer inquiry increases with the size of the plot.
+
+```{r, echo = FALSE, message = FALSE,, fig_width = 3, fig.height= 3}
+temp <- filter(area, parcel_area_inquiry_3 <= 4)
+
+ggplot(temp, aes(x= parcel_area_inquiry_3, y = perDiff)) +
+         geom_point() +
+         geom_smooth(method = lm) +
+         ylab("Percentage Difference") +
+         xlab("Area given by farmer inquiry")
+```
+
+# Conclusion with comparision from the Indonesia resuults
+The preliminary analysis from the *Indonesia* data showed the following:
+
+1. On average, there is a slight upward biase in area measurement collected by farmer inquiry compared with gps. 
+
+2. There is a slight negative relationship between the plot size and percentage difference between the gps and farmer inquiry method.
+
+3. The variation in plot area for small plots is higher using gps than farmer inquiry. 
+
+In Jamaica, 1 and 3 seem to hold, but 2 does not. Furthermore, the accuracy of the georeferencing plots was much better in Jamaica than Indonesia. 
